@@ -1,4 +1,4 @@
-<!-- level1-sz.html - 古邑管控系统 · 时序校准终端（默认显示2010-06-15 23:59，校准条件2009-04-12 17:02） -->
+<!-- level1-sz.html - 古邑管控系统 · 时序校准终端（默认显示2010-06-15 23:59） -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -495,14 +495,14 @@
 <div id="image-modal">
     <div class="modal-content">
         <!-- ===【替换弹窗图片src路径】修改下方src属性即可 === -->
-        <img id="modal-image" src="image/xs.jpg" alt="封存影像" style="user-select:auto;-webkit-user-select:auto;"/>
+        <img id="modal-image" alt="封存影像" style="user-select:auto;-webkit-user-select:auto;"/>
         <div style="margin-top:8px;text-align:center;">
             <div>瘗姥图（已失真）</div>
-            <a id="modal-download" href="image/xs.jpg" download="封存影像.jpg"
+            <a id="modal-download" download="封存影像.jpg"
                style="color:var(--glow-green);font-size:11px;cursor:pointer;letter-spacing:2px;font-family:'SimSun','宋体',serif;text-decoration:underline;margin-right:12px;">
                 下载图片
             </a>
-            <a id="modal-view" href="image/xs.jpg" target="_blank"
+            <a id="modal-view" target="_blank"
                style="color:var(--glow-green);font-size:11px;cursor:pointer;letter-spacing:2px;font-family:'SimSun','宋体',serif;text-decoration:underline;">
                 查看原图
             </a>
@@ -517,35 +517,43 @@
         <div class="alert-close" onclick="closeSystemAlert()">确定</div>
     </div>
 
+    <script src="puzzle-data.js"></script>
+    <script src="puzzle-crypto.js"></script>
     <script>
-        function performCalibration() {
-            const yearInput = document.getElementById('input-year').value.trim();
-            const monthInput = document.getElementById('input-month').value.trim();
-            const dayInput = document.getElementById('input-day').value.trim();
-            const hourInput = document.getElementById('input-hour').value.trim();
-            const minuteInput = document.getElementById('input-minute').value.trim();
+        async function performCalibration() {
+            const inputIds = [
+                'input-year',
+                'input-month',
+                'input-day',
+                'input-hour',
+                'input-minute'
+            ];
+            const values = inputIds.map(function (id) {
+                return document.getElementById(id).value.trim();
+            });
 
-            if (!yearInput || !monthInput || !dayInput || !hourInput || !minuteInput) {
+            if (values.some(function (value) { return !value; })) {
                 showSystemAlert('请输入完整的日期与时间参数。');
                 return;
             }
 
-            const yearNum = parseInt(yearInput, 10);
-            const monthNum = parseInt(monthInput, 10);
-            const dayNum = parseInt(dayInput, 10);
-            const hourNum = parseInt(hourInput, 10);
-            const minuteNum = parseInt(minuteInput, 10);
-
-            if (isNaN(yearNum) || isNaN(monthNum) || isNaN(dayNum) || isNaN(hourNum) || isNaN(minuteNum)) {
+            const numbers = values.map(function (value) {
+                return parseInt(value, 10);
+            });
+            if (numbers.some(function (value) { return isNaN(value); })) {
                 showSystemAlert('参数格式错误，请输入有效数字。');
                 return;
             }
 
-            // ========================================
-            // 核心判断逻辑（保持不变）：
-            // 校准成功条件：2009年4月12日17时02分
-            // ========================================
-            if (yearNum === 2009 && monthNum === 4 && dayNum === 12 && hourNum === 17 && minuteNum === 2) {
+            const imagePath = await PuzzleCrypto.decrypt(
+                'timeline-calibration-image-v1',
+                numbers.join(':'),
+                PuzzleData.timelineCalibration
+            );
+            if (imagePath !== null) {
+                document.getElementById('modal-image').src = imagePath;
+                document.getElementById('modal-download').href = imagePath;
+                document.getElementById('modal-view').href = imagePath;
                 showImageModal();
             } else {
                 showSystemAlert('时序校准失败，请重新调整参数');

@@ -324,6 +324,8 @@
         <span>你不属于这里，<span class="blink-text">你是谁？</span></span>
     </div>
 
+    <script src="puzzle-data.js"></script>
+    <script src="puzzle-crypto.js"></script>
     <script>
         // 404弹窗
         function show404Alert() {
@@ -342,23 +344,40 @@
         document.getElementById("right-content").addEventListener("contextmenu", function(e) { e.preventDefault(); });
 
         // 登录验证逻辑
-function handleLogin() {
-    const id = document.getElementById('employee-id').value.trim();
-    const key = document.getElementById('secret-key').value.trim();
+        const loginChallenges = [
+            {
+                id: 'login-employee-1-target-v1',
+                ciphertext: PuzzleData.loginEmployee1
+            },
+            {
+                id: 'login-employee-2-target-v1',
+                ciphertext: PuzzleData.loginEmployee2
+            }
+        ];
 
-    if (!id || !key) {
-        alert("请输入员工编号和员工秘钥。");
-        return;
-    }
+        async function handleLogin() {
+            const id = document.getElementById('employee-id').value.trim();
+            const key = document.getElementById('secret-key').value.trim();
 
-    // 预设两组有效凭证
-    if (id === "943851198907209213" && key === "YH82-GS71-LH36-CV94") {
-        window.open("level2-1.html", "_blank");  // 在新窗口打开目标1
-    } else if (id === "灁㵒瘞軎禷禩䫻䫹" && key === "G7s9-kR2p-Bt4n-Qm6z") {
-        window.open("level3-1.html", "_blank");  // 在新窗口打开目标2
-    } else {
-        alert("员工编号或秘钥错误，请重新输入。");
-    }
+            if (!id || !key) {
+                alert("请输入员工编号和员工秘钥。");
+                return;
+            }
+
+            const credentials = id + '\0' + key;
+            for (const challenge of loginChallenges) {
+                const target = await PuzzleCrypto.decrypt(
+                    challenge.id,
+                    credentials,
+                    challenge.ciphertext
+                );
+                if (target !== null) {
+                    window.location.href = target;
+                    return;
+                }
+            }
+
+            alert("员工编号或秘钥错误，请重新输入。");
         }
 
         // 维护按钮

@@ -780,10 +780,10 @@
 
     <!-- 图片弹出层 -->
    <div class="image-modal" id="imageModal">
-    <img src="image/xs2.jpg" alt="祭祀记录确认" id="modalImage">
+    <img alt="祭祀记录确认" id="modalImage">
     <!-- 新增加的功能按钮容器 -->
     <div class="modal-actions">
-        <div style="text-align:center; margin: 16px auto; width: 260px; 
+        <div style="text-align:center; margin: 16px auto; width: 260px;
             background: #1C1714; border: 1px dashed #5C3A3A; padding: 8px;
             color: #A08870; font-size: 11px; letter-spacing: 1px;
             font-family: 'Noto Serif SC', serif;">
@@ -799,6 +799,8 @@
     <button class="close-modal" id="closeModalBtn">关闭</button>
 </div>
 
+    <script src="puzzle-data.js"></script>
+    <script src="puzzle-crypto.js"></script>
     <script>
         // 禁止右键等
         document.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
@@ -808,35 +810,31 @@
             }
         });
 
-        // 正确的祭祀人数对应关系
-        const correctValues = {
-            2005: 6,
-            2006: 5,
-            2007: 2,
-            2008: 3,
-            2009: 16
-        };
-
         // 提交按钮逻辑
-        document.getElementById('submitStatsBtn').addEventListener('click', function() {
+        document.getElementById('submitStatsBtn').addEventListener('click', async function() {
             const years = [2005, 2006, 2007, 2008, 2009];
-            let allCorrect = true;
+            const values = years.map(function (year) {
+                return document.getElementById('input' + year).value.trim();
+            });
 
-            for (let year of years) {
-                const inputEl = document.getElementById('input' + year);
-                if (!inputEl) continue;
-                const inputVal = inputEl.value.trim();
-                if (inputVal === '' || isNaN(inputVal) || parseInt(inputVal, 10) !== correctValues[year]) {
-                    allCorrect = false;
-                    break;
-                }
+            if (values.some(function (value) { return value === '' || isNaN(value); })) {
+                alert('与实际记录不符');
+                return;
             }
 
-            if (allCorrect) {
+            const normalizedValues = values.map(function (value) {
+                return parseInt(value, 10);
+            });
+            const imagePath = await PuzzleCrypto.decrypt(
+                'ritual-stats-image-v1',
+                normalizedValues.join(':'),
+                PuzzleData.ritualStats
+            );
+
+            if (imagePath !== null) {
                 alert('提交成功');
-                // 弹出图片
-                const modal = document.getElementById('imageModal');
-                modal.classList.add('active');
+                document.getElementById('modalImage').src = imagePath;
+                document.getElementById('imageModal').classList.add('active');
             } else {
                 alert('与实际记录不符');
             }
@@ -869,7 +867,7 @@ downloadBtn.addEventListener('click', async function() {
         const response = await fetch(imgSrc);
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = imgSrc.split('/').pop() || '祭祀记录确认.jpg';  // 使用原文件名或默认名
@@ -877,7 +875,7 @@ downloadBtn.addEventListener('click', async function() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         // 轻提示（复用你已有的 toast 函数）
         if (typeof showToast === 'function') {
             showToast('图片正在下载……', 1800);
